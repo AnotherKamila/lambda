@@ -26,12 +26,13 @@ prender exp = putStrLn $ render exp
 
 -- it is a monad, but I have no idea what I am talking about... TODO
 parse :: String -> (LExp, String)
+parse ('(':xs)
+    | head rest == ')' = (m, tail rest)
+    | head rest == ' ' = let (n, ')':rest') = parse (tail rest) in (APPL m n, rest')
+    where (m, rest) = parse xs
 parse ('λ':xs) = (LAMBDA name parsed, rest')
                    where (name, ('.':exps)) = break (=='.') xs
                          (parsed, rest')     = parse exps
-parse ('(':xs) = (APPL m n, rest)
-                   where (m, (' ':xs')) = parse xs
-                         (n, (')':rest)) = parse xs'
 parse xs       = (IDENT x, rest)
                    where (x, rest) = break (`notElem` ['a'..'z']) xs
 
@@ -58,4 +59,4 @@ k = cparse "λx.λy.x"
 i = cparse "λx.λy"
 omg = cparse "λx.(x x)"
 -- omgomg = APPL omg omg
---omgwtf = APPL (APPL omg omg) omg  -- TODO get from string
+-- omgwtf = APPL (APPL omg omg) omg -- TODO get from string
