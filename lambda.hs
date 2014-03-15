@@ -63,15 +63,15 @@ subterms (IDENT x)    = [IDENT x]
 subterms (LAMBDA x m) = (subterms m) `union` [LAMBDA x m]
 subterms (APPL m n)   = (subterms m) `union` (subterms n) `union` [APPL m n]
 
-subst :: (Name, LExp) -> LExp -> LExp
-subst (name, exp) (IDENT x)    = if name == x then exp else IDENT x
-subst (name, exp) (APPL m n)   = APPL (subst (name, exp) m) (subst (name, exp) n)
-subst (name, exp) (LAMBDA x m)
-    | name == x = LAMBDA x m -- then x should be the lambda's x, not this x
+subst :: LExp -> (Name, LExp) -> LExp
+subst (IDENT x)    (name, exp) = if name == x then exp else IDENT x
+subst (APPL m n)   (name, exp) = APPL (subst m (name, exp)) (subst n (name, exp))
+subst (LAMBDA x m) (name, exp)
+    | name == x = LAMBDA x m                      -- then x should be the lambda's x, not this x
     | name `elem` (free m) && x `elem` free exp = -- avoid trouble when y is in m
-            let z = newname [exp,m] in LAMBDA z (subst (name,exp) (subst (x,(IDENT z)) m))           
-    | otherwise = LAMBDA x (subst (name, exp) m)
-    
+            let z = newname [exp,m] in LAMBDA z (subst (subst m (x,(IDENT z))) (name,exp))           
+    | otherwise = LAMBDA x (subst m (name,exp))
+
 ----------------------------------------------------------------------------------------------------
 
 k = cparse "λx.λy.x"
