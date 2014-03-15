@@ -34,7 +34,7 @@ parse ('λ':xs) = (LAMBDA name parsed, rest')
                    where (name, ('.':exps)) = break (=='.') xs
                          (parsed, rest')     = parse exps
 parse xs       = (IDENT x, rest)
-                   where (x, rest) = break (`notElem` ['a'..'z']++['0'..'9']) xs
+                   where (x, rest) = break (`notElem` ['a'..'z']++['A'..'Z']++['0'..'9']) xs
 
 cparse s
     | snd parsed == "" = fst parsed
