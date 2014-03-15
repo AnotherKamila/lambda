@@ -14,6 +14,8 @@ data LExp = APPL LExp LExp   -- application
           -- | CONST Integer    -- numeric constant
     deriving (Show, Read, Eq)
 
+symbol_chars = ['a'..'z']++['A'..'Z']++['0'..'9']++"+-*/^"
+
 ----------------------------------------------------------------------------------------------------
 
 render :: LExp -> String
@@ -34,9 +36,9 @@ parse ('λ':xs) = (LAMBDA name parsed, rest')
                    where (name, ('.':exps)) = break (=='.') xs
                          (parsed, rest')     = parse exps
 parse xs       = (IDENT x, rest)
-                   where (x, rest) = break (`notElem` ['a'..'z']++['A'..'Z']++['0'..'9']) xs
+                   where (x, rest) = break (`notElem` symbol_chars) xs
 
-cparse s
+sparse s
     | snd parsed == "" = fst parsed
     | otherwise        = error "Parse error: not a single, complete expression"
     where parsed = parse s
@@ -77,9 +79,13 @@ subst (LAMBDA x m) (name, exp)
             let z = newname [exp,m] in LAMBDA z (subst (subst m (x,(IDENT z))) (name,exp))           
     | otherwise = LAMBDA x (subst m (name,exp))
 
+-- shortcut for substitution
+m % (n,e) = subst m (n,e)
+infixl 5 %
+
 beta_reduce :: LExp -> LExp
-beta_reduce (APPL (LAMBDA x e) n) = subst e (x, n)
-beta_reduce (APPL m n) = beta_reduce (APPL (beta_reduce m) (beta_reduce n))
+beta_reduce (APPL (LAMBDA x e) n) = e%(x,n)
+beta_reduce (APPL m n) = (APPL (beta_reduce m) (beta_reduce n))
 beta_reduce (LAMBDA x e) = LAMBDA x (beta_reduce e)
 beta_reduce m = m
 
@@ -103,9 +109,10 @@ add_c bs = fix' (add_one bs)
               add_one (b:bs) e = add_one bs (subst e b)
 
 g :: Context
-g = [ ("K",   cparse "λx.λy.x")
-    , ("I",   cparse "λx.x")
-    , ("OMG", cparse "λx.(x x)")
-    , ("OMGOMG", cparse "(OMG OMG)")
-    , ("OMGWTF", cparse "((OMG OMG) OMG)")
+g = [ ("K"  , sparse "λx.λy.x")
+    , ("I"  , sparse "λx.x")
+    , ("S"  , sparse "λx.λy.λz.((x z) (y z))")
+    , ("OMG", sparse "λx.(x x)")
+    , ("OMGOMG", sparse "(OMG OMG)")
+    , ("OMGWTF", sparse "((OMG OMG) OMG)")
     ]
