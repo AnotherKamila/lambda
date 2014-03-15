@@ -80,6 +80,7 @@ subst (LAMBDA x m) (name, exp)
 beta_reduce :: LExp -> LExp
 beta_reduce (APPL (LAMBDA x e) n) = subst e (x, n)
 beta_reduce (APPL m n) = beta_reduce (APPL (beta_reduce m) (beta_reduce n))
+beta_reduce (LAMBDA x e) = LAMBDA x (beta_reduce e)
 beta_reduce m = m
 
 normal_form :: LExp -> LExp
@@ -87,8 +88,24 @@ normal_form = fix' beta_reduce
 
 ----------------------------------------------------------------------------------------------------
 
-k = cparse "λx.λy.x"
-i = cparse "λx.x"
-omg = cparse "λx.(x x)"
--- omgomg = APPL omg omg
--- omgwtf = APPL (APPL omg omg) omg -- TODO get from string
+-- yes, and this too should be a monad, if I only knew what monads were...
+-- (i.e. TODO use the State monad or something to pass around context in normal beta reduce one day)
+
+type Context = [(Name, LExp)] -- TODO change this to a map to get better time complexity
+
+def :: Context -> Name -> LExp -> Context
+def c n e = case lookup n c of Nothing -> (n,e):c
+                               Just _  -> error $ "Symbol "++n++" already defined in context"
+
+add_c :: Context -> LExp -> LExp
+add_c bs = fix' (add_one bs)
+        where add_one []     e = e
+              add_one (b:bs) e = add_one bs (subst e b)
+
+g :: Context
+g = [ ("K",   cparse "λx.λy.x")
+    , ("I",   cparse "λx.x")
+    , ("OMG", cparse "λx.(x x)")
+    , ("OMGOMG", cparse "(OMG OMG)")
+    , ("OMGWTF", cparse "((OMG OMG) OMG)")
+    ]
