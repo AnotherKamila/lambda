@@ -34,7 +34,7 @@ parse ('λ':xs) = (LAMBDA name parsed, rest')
                    where (name, ('.':exps)) = break (=='.') xs
                          (parsed, rest')     = parse exps
 parse xs       = (IDENT x, rest)
-                   where (x, rest) = break (`notElem` ['a'..'z']) xs
+                   where (x, rest) = break (`notElem` ['a'..'z']++['0'..'9']) xs
 
 cparse s
     | snd parsed == "" = fst parsed
@@ -43,20 +43,39 @@ cparse s
 
 ----------------------------------------------------------------------------------------------------
 
+used_names :: LExp -> [Name]
+used_names (IDENT x) = [x]
+used_names (LAMBDA x m) = [x] `union` (used_names m)
+used_names (APPL m n) = (used_names m) `union` (used_names n)
+
+newname :: [LExp] -> Name
+newname xs = head $ (map (('x':).show) [1..]) \\ (nub . concat) (map used_names xs)
+
+----------------------------------------------------------------------------------------------------
+
 free :: LExp -> [Name]
 free (IDENT x)    = [x]
 free (LAMBDA x m) = delete x (free m)
 free (APPL f a)   = (free f) `union` (free a)
 
-subt :: LExp -> [LExp]
-subt (IDENT x)    = [IDENT x]
-subt (LAMBDA x m) = (subt m) `union` [(LAMBDA x m)]
-subt (APPL m n)   = (subt m) `union` (subt n) `union` [(APPL m n)]
+subterms :: LExp -> [LExp]
+subterms (IDENT x)    = [IDENT x]
+subterms (LAMBDA x m) = (subterms m) `union` [LAMBDA x m]
+subterms (APPL m n)   = (subterms m) `union` (subterms n) `union` [APPL m n]
 
+subst :: (Name, LExp) -> LExp -> LExp
+subst (name, exp) (IDENT x)    = if name == x then exp else IDENT x
+subst (name, exp) (APPL m n)   = APPL (subst (name, exp) m) (subst (name, exp) n)
+subst (name, exp) (LAMBDA x m)
+    | name == x = LAMBDA x m -- then x should be the lambda's x, not this x
+    | name `elem` (free m) && x `elem` free exp = -- avoid trouble when y is in m
+            let z = newname [exp,m] in LAMBDA z (subst (name,exp) (subst (x,(IDENT z)) m))           
+    | otherwise = LAMBDA x (subst (name, exp) m)
+    
 ----------------------------------------------------------------------------------------------------
 
 k = cparse "λx.λy.x"
-i = cparse "λx.λy"
+i = cparse "λx.x"
 omg = cparse "λx.(x x)"
 -- omgomg = APPL omg omg
 -- omgwtf = APPL (APPL omg omg) omg -- TODO get from string
