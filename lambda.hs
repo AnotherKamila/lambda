@@ -43,6 +43,11 @@ cparse s
 
 ----------------------------------------------------------------------------------------------------
 
+fix' :: Eq a => (a -> a) -> a -> a
+fix' f x = if x' == x then x else fix' f x' where x' = f x
+
+----------------------------------------------------------------------------------------------------
+
 used_names :: LExp -> [Name]
 used_names (IDENT x) = [x]
 used_names (LAMBDA x m) = [x] `union` (used_names m)
@@ -79,9 +84,6 @@ beta_reduce m = m
 
 normal_form :: LExp -> LExp
 normal_form = fix' beta_reduce
-
-fix' :: Eq a => (a -> a) -> a -> a
-fix' f x = if x' == x then x else fix' f x' where x' = f x
 
 ----------------------------------------------------------------------------------------------------
 
