@@ -72,6 +72,17 @@ subst (LAMBDA x m) (name, exp)
             let z = newname [exp,m] in LAMBDA z (subst (subst m (x,(IDENT z))) (name,exp))           
     | otherwise = LAMBDA x (subst m (name,exp))
 
+beta_reduce :: LExp -> LExp
+beta_reduce (APPL (LAMBDA x e) n) = subst e (x, n)
+beta_reduce (APPL m n) = beta_reduce (APPL (beta_reduce m) (beta_reduce n))
+beta_reduce m = m
+
+normal_form :: LExp -> LExp
+normal_form = fix' beta_reduce
+
+fix' :: Eq a => (a -> a) -> a -> a
+fix' f x = if x' == x then x else fix' f x' where x' = f x
+
 ----------------------------------------------------------------------------------------------------
 
 k = cparse "λx.λy.x"
