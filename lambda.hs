@@ -65,11 +65,6 @@ free (IDENT x)    = [x]
 free (LAMBDA x m) = delete x (free m)
 free (APPL f a)   = (free f) `union` (free a)
 
-subterms :: LExp -> [LExp]
-subterms (IDENT x)    = [IDENT x]
-subterms (LAMBDA x m) = (subterms m) `union` [LAMBDA x m]
-subterms (APPL m n)   = (subterms m) `union` (subterms n) `union` [APPL m n]
-
 subst :: LExp -> (Name, LExp) -> LExp
 subst (IDENT x)    (name, exp) = if name == x then exp else IDENT x
 subst (APPL m n)   (name, exp) = APPL (subst m (name, exp)) (subst n (name, exp))
