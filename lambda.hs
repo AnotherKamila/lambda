@@ -125,11 +125,17 @@ numbers = [ ("succ", sparse "λn.λf.λx.(f ((n f) x))")
           , ("*"   , sparse "λm.λn.λf.λx.((m (n f)) x)")
           , ("^"   , sparse "λm.λn.λf.λx.(((n m) f) x)")
           , ("pred", sparse "λn.λf.λx.(((n (λg.λh.(h (g f)))) (λu.x)) (λu.u))")
-          , ("-"   , sparse "λm.λn.((n pred) m)")
+          , ("-"   , sparse "λm.λn.((n pred) m)") -- `pred` and `-` was copied from Wikipedia :-(
           ] ++ (take 100 $ zip (map show [0..]) nrs) -- context must be finite (obviously)
 
 ----------------------------------------------------------------------------------------------------
 
 -- TODO make a "real" interpreter, which will read a file, have a neat way to define contexts, etc.
 
-asparse = csparse (g++numbers)
+asparse = csparse (g++numbers++[("F", sparse "(λt.(t t) (λf.λx.(f (f x))))")])
+
+main = mapM_ (prender . normal_form . asparse)
+           [ "((λx.λy.(x λz.(y z)) (λx.λy.y 8)) λx.(λy.y x))"
+           , "(λh.(λx.(h (x x)) λx.(h (x x))) (λa.λb.a ((+ 1) 5)))"
+           , "((F succ) 0)"
+           ]
