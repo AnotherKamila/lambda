@@ -116,3 +116,17 @@ g = [ ("K"  , sparse "λx.λy.x")
     , ("OMGOMG", sparse "(OMG OMG)")
     , ("OMGWTF", sparse "((OMG OMG) OMG)")
     ]
+
+-- Church numbers ----------------------------------------------------------------------------------
+
+nrs :: [LExp] -- (infinite) list of Church numbers (yay!)
+nrs = (sparse "λf.λx.x"):(map (\e -> APPL (sparse "succ") e ) nrs)
+
+numbers :: Context
+numbers = [ ("succ", sparse "λn.λf.λx.(f ((n f) x))")
+          , ("+"   , sparse "λm.λn.λf.λx.((m f) ((n f) x))")
+          , ("*"   , sparse "λm.λn.λf.λx.((m (n f)) x)")
+          , ("^"   , sparse "λm.λn.λf.λx.(((n m) f) x)")
+          , ("pred", sparse "λn.λf.λx.(((n (λg.λh.(h (g f)))) (λu.x)) (λu.u))")
+          , ("-"   , sparse "λm.λn.((n pred) m)")
+          ] ++ (take 100 $ zip (map show [0..]) nrs) -- context must be finite (obviously)
