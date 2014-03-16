@@ -117,6 +117,8 @@ g = [ ("K"  , sparse "λx.λy.x")
     , ("OMGWTF", sparse "((OMG OMG) OMG)")
     ]
 
+csparse c = (add_c c) . sparse
+
 -- Church numbers ----------------------------------------------------------------------------------
 
 nrs :: [LExp] -- (infinite) list of Church numbers (yay!)
@@ -130,3 +132,9 @@ numbers = [ ("succ", sparse "λn.λf.λx.(f ((n f) x))")
           , ("pred", sparse "λn.λf.λx.(((n (λg.λh.(h (g f)))) (λu.x)) (λu.u))")
           , ("-"   , sparse "λm.λn.((n pred) m)")
           ] ++ (take 100 $ zip (map show [0..]) nrs) -- context must be finite (obviously)
+
+----------------------------------------------------------------------------------------------------
+
+-- TODO make a "real" interpreter, which will read a file, have a neat way to define contexts, etc.
+
+asparse = csparse (g++numbers)
