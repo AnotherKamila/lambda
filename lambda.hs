@@ -9,9 +9,6 @@ type Name = String
 data LExp = APPL LExp LExp   -- application
           | IDENT Name       -- variable
           | LAMBDA Name LExp -- abstraction
-          -- I will add the following once I find out how my functions should handle those
-          -- | SCONST Name      -- string constant (built-in function, ...)
-          -- | CONST Integer    -- numeric constant
     deriving (Show, Read, Eq)
 
 symbol_chars = ['a'..'z']++['A'..'Z']++['0'..'9']++"+-*/^"
@@ -104,7 +101,8 @@ add_c bs = fix' (add_one bs)
               add_one (b:bs) e = add_one bs (subst e b)
 
 g :: Context
-g = [ ("K"  , sparse "λx.λy.x")
+g = [ ("K"  , sparse "λx.λy.x") -- returns first arg
+    , ("KI" , sparse "(K I)")   -- returns second arg
     , ("I"  , sparse "λx.x")
     , ("S"  , sparse "λx.λy.λz.((x z) (y z))")
     , ("OMG", sparse "λx.(x x)")
@@ -114,9 +112,9 @@ g = [ ("K"  , sparse "λx.λy.x")
 
 csparse c = (add_c c) . sparse
 
--- Church numbers ----------------------------------------------------------------------------------
+-- data types & data structures --------------------------------------------------------------------
 
-nrs :: [LExp] -- (infinite) list of Church numbers (yay!)
+nrs :: [LExp] -- (infinite) list of Church numerals (yay!)
 nrs = (sparse "λf.λx.x"):(map (\e -> APPL (sparse "succ") e ) nrs)
 
 numbers :: Context
@@ -126,16 +124,32 @@ numbers = [ ("succ", sparse "λn.λf.λx.(f ((n f) x))")
           , ("^"   , sparse "λm.λn.λf.λx.(((n m) f) x)")
           , ("pred", sparse "λn.λf.λx.(((n (λg.λh.(h (g f)))) (λu.x)) (λu.u))")
           , ("-"   , sparse "λm.λn.((n pred) m)") -- `pred` and `-` was copied from Wikipedia :-(
+          --, ("="   , sparse "λm.λn.") -- TODO
           ] ++ (take 100 $ zip (map show [0..]) nrs) -- context must be finite (obviously)
+
+logic :: Context
+logic = [ ("TRUE" , sparse "K")
+        , ("FALSE", sparse "KI")
+        , ("AND"  , sparse "λx.λy.((x y) FALSE)")
+        , ("OR"   , sparse "λx.λy.((x TRUE) y)")
+        --, ("XOR"  , sparse "λx.λy.((x TRUE) y)") -- TODO
+        , ("IF"   , sparse "λp.p")
+        ]
+
+magic :: Context
+magic = [ ("Y", sparse "TODO")
+        ]
+
+a :: Context
+a = g++numbers++logic++magic
+
+asparse = csparse a
 
 ----------------------------------------------------------------------------------------------------
 
 -- TODO make a "real" interpreter, which will read a file, have a neat way to define contexts, etc.
 
-asparse = csparse (g++numbers++[("F", sparse "(λt.(t t) (λf.λx.(f (f x))))")])
-
 main = mapM_ (prender . normal_form . asparse)
            [ "((λx.λy.(x λz.(y z)) (λx.λy.y 8)) λx.(λy.y x))"
            , "(λh.(λx.(h (x x)) λx.(h (x x))) (λa.λb.a ((+ 1) 5)))"
-           , "((F succ) 0)"
            ]
