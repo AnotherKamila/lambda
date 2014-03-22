@@ -68,7 +68,7 @@ subst (APPL m n)   (name, exp) = APPL (subst m (name, exp)) (subst n (name, exp)
 subst (LAMBDA x m) (name, exp)
     | name == x = LAMBDA x m                      -- then x should be the lambda's x, not this x
     | name `elem` (free m) && x `elem` free exp = -- avoid trouble when y is in m
-            let z = newname [exp,m] in LAMBDA z (subst (subst m (x,(IDENT z))) (name,exp))           
+            let z = newname [exp,m] in LAMBDA z (subst (subst m (x,(IDENT z))) (name,exp))
     | otherwise = LAMBDA x (subst m (name,exp))
 
 -- shortcut for substitution
@@ -147,9 +147,23 @@ asparse = csparse a
 
 ----------------------------------------------------------------------------------------------------
 
--- TODO make a "real" interpreter, which will read a file, have a neat way to define contexts, etc.
+{- TODO -- eventually
+-- the following is of course a monad, too...
+interpret :: String -> String
+interpret ss = fst $ foldr on_ln ("", [] :: Context) $ lines ss
+               where on_ln ln (z,s) = (ln ++ "\n" ++ z, s)
+--interpret ss = unlines $ foldl (\ln -> (render . normal_form . add_c a . sparse) ln) "" $ lines ss
+--interpret ss = map $ render . normal_form . asparse $ lines ss
+-}
+interpret :: String -> String
+interpret ss = unlines $ map (render . normal_form . asparse) $ lines ss
+--interpret ss = unlines $ map $ render . normal_form . asparse $ lines ss
 
-main = mapM_ (prender . normal_form . asparse)
-           [ "((λx.λy.(x λz.(y z)) (λx.λy.y 8)) λx.(λy.y x))"
-           , "(λh.(λx.(h (x x)) λx.(h (x x))) (λa.λb.a ((+ 1) 5)))"
-           ]
+----------------------------------------------------------------------------------------------------
+
+--main = mapM_ (prender . normal_form . asparse)
+--           [ "((λx.λy.(x λz.(y z)) (λx.λy.y 8)) λx.(λy.y x))"
+--           , "(λh.(λx.(h (x x)) λx.(h (x x))) (λa.λb.a ((+ 1) 5)))"
+--           ]
+
+main = interact interpret
