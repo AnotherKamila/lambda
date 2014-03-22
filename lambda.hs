@@ -140,7 +140,9 @@ numbers = [ ("SUCC", sparse "λn.λf.λx.(f ((n f) x))")
           ] ++ (take 20 $ zip (map show [0..]) nrs) -- context must be finite (obviously)
 
 magic :: Context
-magic = [ ("Y", sparse "TODO")
+magic = [ ("Y",   sparse "λf.((λx.(f (x x))) (λx.(f (x x))))")
+        --, ("FAC", sparse "(Y λf.λn.(((IS0 n) 1) (f (PRED n))))")
+        , ("FAC", sparse "(Y λf.λn.(((IS0 n) 1) ((* n) (f (PRED n)))))")
         ]
 
 a :: Context
