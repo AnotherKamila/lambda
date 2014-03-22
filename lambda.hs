@@ -11,7 +11,7 @@ data LExp = APPL LExp LExp   -- application
           | LAMBDA Name LExp -- abstraction
     deriving (Show, Read, Eq)
 
-symbol_chars = ['a'..'z']++['A'..'Z']++['0'..'9']++"+-*/^"
+symbol_chars = ['a'..'z']++['A'..'Z']++['0'..'9']++"+-*/^="
 
 ----------------------------------------------------------------------------------------------------
 
@@ -114,27 +114,30 @@ csparse c = (add_c c) . sparse
 
 -- data types & data structures --------------------------------------------------------------------
 
-nrs :: [LExp] -- (infinite) list of Church numerals (yay!)
-nrs = (sparse "λf.λx.x"):(map (\e -> APPL (sparse "succ") e ) nrs)
-
-numbers :: Context
-numbers = [ ("succ", sparse "λn.λf.λx.(f ((n f) x))")
-          , ("+"   , sparse "λm.λn.λf.λx.((m f) ((n f) x))")
-          , ("*"   , sparse "λm.λn.λf.λx.((m (n f)) x)")
-          , ("^"   , sparse "λm.λn.λf.λx.(((n m) f) x)")
-          , ("pred", sparse "λn.λf.λx.(((n (λg.λh.(h (g f)))) (λu.x)) (λu.u))")
-          , ("-"   , sparse "λm.λn.((n pred) m)") -- `pred` and `-` was copied from Wikipedia :-(
-          --, ("="   , sparse "λm.λn.") -- TODO
-          ] ++ (take 100 $ zip (map show [0..]) nrs) -- context must be finite (obviously)
-
 logic :: Context
 logic = [ ("TRUE" , sparse "K")
         , ("FALSE", sparse "KI")
+        , ("NOT"  , sparse "λx.((x FALSE) TRUE)")
         , ("AND"  , sparse "λx.λy.((x y) FALSE)")
         , ("OR"   , sparse "λx.λy.((x TRUE) y)")
-        --, ("XOR"  , sparse "λx.λy.((x TRUE) y)") -- TODO
-        , ("IF"   , sparse "λp.p")
+        , ("XOR"  , sparse "λx.λy.((x (NOT y)) y)")
+        , ("IF"   , sparse "λp.p") -- stupid, really
         ]
+
+nrs :: [LExp] -- (infinite) list of Church numerals (yay!)
+nrs = (sparse "λf.λx.x"):(map (\e -> APPL (sparse "SUCC") e ) nrs)
+
+numbers :: Context
+numbers = [ ("SUCC", sparse "λn.λf.λx.(f ((n f) x))")
+          , ("+"   , sparse "λm.λn.λf.λx.((m f) ((n f) x))")
+          , ("*"   , sparse "λm.λn.λf.λx.((m (n f)) x)")
+          , ("^"   , sparse "λm.λn.λf.λx.(((n m) f) x)")
+          , ("PRED", sparse "λn.λf.λx.(((n (λg.λh.(h (g f)))) (λu.x)) (λu.u))")
+          , ("-"   , sparse "λm.λn.((n PRED) m)") -- `pred` and `-` was copied from Wikipedia :-(
+          , ("IS0" , sparse "λn.((n (λx.FALSE)) TRUE)")
+          , ("LEQ" , sparse "λm.λn.(IS0 ((- m) n))")
+          , ("="   , sparse "λm.λn.((AND ((LEQ m) n)) ((LEQ n) m))")
+          ] ++ (take 20 $ zip (map show [0..]) nrs) -- context must be finite (obviously)
 
 magic :: Context
 magic = [ ("Y", sparse "TODO")
