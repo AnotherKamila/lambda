@@ -1,5 +1,6 @@
 import Data.List
 import Data.Maybe
+import Text.ParserCombinators.Parsec
 
 -- λ-term L ::= x | (L L) | λx.L
 --             var   appl   abstr
@@ -15,30 +16,40 @@ symbol_chars = ['a'..'z']++['A'..'Z']++['0'..'9']++"+-*/^="
 
 ----------------------------------------------------------------------------------------------------
 
+parse_ident :: Parser LExp
+parse_ident = many1 (oneOf symbol_chars) >>= \x -> return (IDENT x)
+
+parse_appl :: Parser LExp
+parse_appl = do char '('
+                a <- parse_expr
+                many1 space
+                b <- parse_expr
+                char ')'
+                return (APPL a b)
+
+parse_lambda :: Parser LExp
+parse_lambda = do
+    char 'λ'
+    IDENT x <- parse_ident
+    char '.'
+    e <- parse_expr
+    return (LAMBDA x e)
+
+parse_expr = parse_lambda <|> parse_appl <|> parse_ident
+
+sparse :: String -> LExp
+sparse input = case parse parse_expr "input" input of
+                    Left err -> error $ show err
+                    Right e  -> e
+
+----------------------------------------------------------------------------------------------------
+
 render :: LExp -> String
 render (IDENT x)    = x
 render (LAMBDA x m) = "λ"++x++"."++(render m)
 render (APPL m n)   = "("++(render m)++" "++(render n)++")"
 
 prender exp = putStrLn $ render exp
-
--- it is a monad, but I have no idea what I am talking about... TODO
--- also TODO: if I move the ' ' check to IDENT, brackets around application will not be needed
-parse :: String -> (LExp, String)
-parse ('(':xs)
-    | head rest == ')' = (m, tail rest)
-    | head rest == ' ' = let (n, ')':rest') = parse (tail rest) in (APPL m n, rest')
-    where (m, rest) = parse xs
-parse ('λ':xs) = (LAMBDA name parsed, rest')
-                   where (name, ('.':exps)) = break (=='.') xs
-                         (parsed, rest')     = parse exps
-parse xs       = (IDENT x, rest)
-                   where (x, rest) = break (`notElem` symbol_chars) xs
-
-sparse s
-    | snd parsed == "" = fst parsed
-    | otherwise        = error "Parse error: not a single, complete expression"
-    where parsed = parse s
 
 ----------------------------------------------------------------------------------------------------
 
